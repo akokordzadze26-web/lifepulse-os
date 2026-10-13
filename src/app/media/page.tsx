@@ -329,18 +329,22 @@ export default function MediaPage() {
                     onClick={() => openPreview(item.url)}
                     className="w-full h-48 object-cover cursor-zoom-in group-hover:scale-105 smooth-transition"
                   />
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-4 pointer-events-none">
-                    <p className="text-[10px] text-zinc-300">{item.date}</p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteMedia(item.id);
-                      }}
-                      className="self-end px-3 py-1.5 rounded-xl text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold cursor-pointer pointer-events-auto shadow-md"
-                    >
-                      🗑️ {t.delete}
-                    </button>
-                  </div>
+                  {/* თარიღი ზედა კუთხეში */}
+<div className="absolute top-2 left-2 bg-black/60 px-2 py-1 rounded-lg pointer-events-none">
+  <p className="text-[10px] text-zinc-300">{item.date}</p>
+</div>
+
+{/* წაშლის ღილაკი: მუდმივად ჩანს ტელეფონზეც და კომპიუტერზეც */}
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    deleteMedia(item.id);
+  }}
+  onTouchStart={(e) => e.stopPropagation()}
+  className="absolute top-2 right-2 px-3 py-1.5 rounded-xl text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold cursor-pointer shadow-lg active:scale-95 z-20"
+>
+  🗑️ {t.delete}
+</button>
                 </div>
               ))}
             </div>
