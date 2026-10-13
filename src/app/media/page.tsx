@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 
 const translations: Record<string, any> = {
@@ -9,6 +9,7 @@ const translations: Record<string, any> = {
     title: "Media Vault & Camera",
     takePhoto: "📷 Take Photo",
     capture: "📸 Capture",
+    switchCamera: "🔄 Switch Camera",
     closeCamera: "✕ Close",
     uploadFile: "📁 Upload File",
     galleryTitle: "🖼️ Your Media Gallery",
@@ -25,6 +26,7 @@ const translations: Record<string, any> = {
     title: "მედია ვოლტი & კამერა",
     takePhoto: "📷 ფოტოს გადაღება",
     capture: "📸 გადაღება",
+    switchCamera: "🔄 კამერის შეცვლა",
     closeCamera: "✕ დახურვა",
     uploadFile: "📁 ფაილის ატვირთვა",
     galleryTitle: "🖼️ შენი მედია გალერეა",
@@ -41,6 +43,7 @@ const translations: Record<string, any> = {
     title: "Хранилище медиа и камера",
     takePhoto: "📷 Сделать фото",
     capture: "📸 Снять",
+    switchCamera: "🔄 Переключить камеру",
     closeCamera: "✕ Закрыть",
     uploadFile: "📁 Загрузить файл",
     galleryTitle: "🖼️ Ваша медиагалерея",
@@ -65,6 +68,9 @@ export default function MediaPage() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [mediaList, setMediaList] = useState<MediaItem[]>([]);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  
+  // კამერის რეჟიმი: 'user' (წინა/სელფი) ან 'environment' (უკანა)
+  const [cameraMode, setCameraMode] = useState<"user" | "environment">("user");
 
   // Lightbox Zoom state
   const [activePreview, setActivePreview] = useState<string | null>(null);
@@ -72,6 +78,7 @@ export default function MediaPage() {
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const loadSettings = () => {
     const savedLang = localStorage.getItem("lifepulse_lang");
@@ -102,25 +109,52 @@ export default function MediaPage() {
 
   const t = translations[lang] || translations.en;
 
-  const startCamera = async () => {
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  }, []);
+
+  const startCamera = useCallback(async (mode: "user" | "environment") => {
+    stopCamera();
     setIsCameraActive(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const constraints = {
+        video: {
+          facingMode: mode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
     } catch (err) {
       console.error("Camera error:", err);
+      setIsCameraActive(false);
     }
+  }, [stopCamera]);
+
+  // კამერის რეჟიმის გადართვა (წინა <-> უკანა)
+  const toggleCameraMode = () => {
+    const nextMode = cameraMode === "user" ? "environment" : "user";
+    setCameraMode(nextMode);
+    startCamera(nextMode);
   };
 
-  const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach((track) => track.stop());
-    }
-    setIsCameraActive(false);
-  };
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, [stopCamera]);
 
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
@@ -130,6 +164,7 @@ export default function MediaPage() {
       canvas.height = video.videoHeight || 480;
       const ctx = canvas.getContext("2d");
       if (ctx) {
+        // თუ წინა კამერაა და გადაღებისას გინდა რომ სარკისებრი არ იყოს, უბრალოდ ვხატავთ ჩვეულებრივად
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL("image/png");
         const newItem: MediaItem = {
@@ -215,10 +250,23 @@ export default function MediaPage() {
         {/* Camera Modal */}
         {isCameraActive && (
           <div className="p-6 rounded-3xl border bg-black/90 border-zinc-800 space-y-4 text-center glass-card">
-            <div className="relative w-full max-w-lg mx-auto h-72 rounded-2xl overflow-hidden bg-zinc-900">
-              <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+            <div className="relative w-full max-w-lg mx-auto h-72 rounded-2xl overflow-hidden bg-zinc-900 flex items-center justify-center">
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                // სელფის რეჟიმში ვიდეო არის სარკისებრი (scale-x-[-1]), ხოლო უკანა კამერისას ჩვეულებრივი
+                className={`w-full h-full object-cover ${cameraMode === "user" ? "scale-x-[-1]" : ""}`} 
+              />
             </div>
-            <div className="flex justify-center gap-4">
+            
+            <div className="flex justify-center gap-4 flex-wrap">
+              <button
+                onClick={toggleCameraMode}
+                className="px-5 py-3 rounded-2xl font-bold text-xs bg-zinc-800 hover:bg-zinc-700 text-white cursor-pointer smooth-transition"
+              >
+                {t.switchCamera}
+              </button>
               <button
                 onClick={capturePhoto}
                 className="px-6 py-3 rounded-2xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer smooth-transition"
@@ -240,7 +288,10 @@ export default function MediaPage() {
         {/* Actions */}
         <div className="flex gap-4 justify-center flex-wrap">
           <button
-            onClick={startCamera}
+            onClick={() => {
+              setCameraMode("user"); // ნაგულისხმევად ირთვება წინა კამერა (სელფი)
+              startCamera("user");
+            }}
             className={`px-6 py-3.5 rounded-2xl font-bold text-xs border transition-all cursor-pointer shadow-md ${
               isDarkMode ? "bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-100" : "bg-white border-[#DCD6C8] hover:bg-[#F4F0EA] text-[#2C221E]"
             }`}
