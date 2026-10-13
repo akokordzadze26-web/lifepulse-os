@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-
+import LockScreen from '@/components/LockScreen';
 export const metadata: Metadata = {
   title: "LifePulse OS",
   description: "Offline-First Productivity & Health Suite",
@@ -19,7 +19,9 @@ export default function RootLayout({
         <meta name="theme-color" content="#09090b" />
       </head>
       <body>
-        {children}
+        <LockScreen>
+          {children}
+        </LockScreen>
       </body>
     </html>
   );
