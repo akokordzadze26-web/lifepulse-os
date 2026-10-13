@@ -2,19 +2,16 @@
 import { useState, useEffect } from 'react';
 
 export default function LockScreen({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [password, setPassword] = useState<string>('');
+  const [error, setError] = useState<boolean>(false);
 
-  // შენი საიდუმლო პაროლი
   const SECRET_PASSWORD = 'LifePulseVIP2026';
 
   useEffect(() => {
     const savedAuth = localStorage.getItem('lifepulse_authenticated');
     if (savedAuth === 'true') {
       setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
     }
   }, []);
 
@@ -29,19 +26,12 @@ export default function LockScreen({ children }: { children: React.ReactNode }) 
     }
   };
 
-  // ჩატვირთვის პროცესი
-  if (isAuthenticated === null) {
-    return <div className="min-h-screen bg-black" />;
-  }
-
-  // თუ პაროლი სწორია, აჩვენებს შენს ჩვეულებრივ აპლიკაციას
   if (isAuthenticated) {
     return <>{children}</>;
   }
 
-  // თუ ავტორიზებული არ არის, აჩვენებს პაროლის ეკრანს
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 font-sans">
+    <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 font-sans fixed inset-0 z-50">
       <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-2xl text-center">
         <div className="w-16 h-16 bg-gradient-to-tr from-emerald-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/20">
           <svg className="w-8 h-8 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,6 +50,7 @@ export default function LockScreen({ children }: { children: React.ReactNode }) 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-center text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition"
+              autoFocus
             />
           </div>
 

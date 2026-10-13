@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import LockScreen from '@/components/LockScreen';
+import LockScreen from './components/LockScreen';
 export const metadata: Metadata = {
   title: "LifePulse OS",
   description: "Offline-First Productivity & Health Suite",
